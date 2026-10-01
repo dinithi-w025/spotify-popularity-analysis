@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Can you predict a song's popularity from how it sounds?</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f2f4f8;--card:#fff;--ink:#14213d;--mute:#5b667d;--line:#d9deea;--acc:#0f8b8d;--neg:#c2410c;--c0:#2f7fc1;--c1:#ee8a2b;--c2:#4aa24e;--c3:#d6403f}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0e1424;--card:#172038;--ink:#e8ecf7;--mute:#98a3bd;--line:#2a3554;--acc:#3ec5c7;--neg:#ff9a62}}
+:root[data-theme="dark"]{--bg:#0e1424;--card:#172038;--ink:#e8ecf7;--mute:#98a3bd;--line:#2a3554;--acc:#3ec5c7;--neg:#ff9a62}
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*,*::before,*::after{box-sizing:inherit}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 17px/1.6 "Bricolage Grotesque",system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:860px;margin:0 auto;padding:0 20px 64px}
+h1{font-size:clamp(2.2rem,6vw,3.9rem);line-height:1.04;font-weight:800;letter-spacing:-.03em;margin:56px 0 18px}
+h2{font-size:1.6rem;font-weight:800;letter-spacing:-.02em;margin:0 0 6px}
+p{max-width:68ch;margin:0 0 14px}
+.lead{font-size:1.2rem;color:var(--mute)}
+section{margin-top:64px}
+.sub{color:var(--mute);margin-bottom:22px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:22px}
+.row{display:grid;grid-template-columns:150px 1fr 56px;align-items:center;gap:12px;margin:9px 0;font-size:.95rem}
+.track{position:relative;height:14px;background:var(--line);border-radius:7px;overflow:hidden}
+.bar{position:absolute;top:0;bottom:0;background:var(--acc);border-radius:7px}
+.neg{background:var(--neg)}
+.val{text-align:right;font-variant-numeric:tabular-nums;color:var(--mute)}
+.zero::after{content:"";position:absolute;left:50%;top:0;bottom:0;width:2px;background:var(--ink);opacity:.5}
+.scroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%;min-width:480px;font-size:.95rem}
+th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line)}
+th{font-weight:600;color:var(--mute)}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px}
+.vibe{border-top:6px solid var(--c);padding:16px;background:var(--card);border-radius:0 0 12px 12px;border-left:1px solid var(--line);border-right:1px solid var(--line);border-bottom:1px solid var(--line)}
+.vibe h3{margin:0 0 4px;font-size:1.15rem}
+.vibe small{display:block;color:var(--mute);margin-top:8px}
+ul{padding-left:20px;max-width:68ch}li{margin-bottom:8px}
+a{color:var(--acc);font-weight:600}
+a:focus-visible,button:focus-visible{outline:3px solid var(--acc);outline-offset:3px}
+.btns{display:flex;gap:12px;flex-wrap:wrap;margin-top:24px}
+.btn{display:inline-block;padding:11px 20px;border-radius:999px;border:2px solid var(--ink);color:var(--ink);text-decoration:none}
+.btn.p{background:var(--ink);color:var(--bg)}
+footer{margin-top:64px;color:var(--mute);font-size:.9rem;border-top:1px solid var(--line);padding-top:20px}
+@media(max-width:560px){.row{grid-template-columns:110px 1fr 48px}}
+</style>
+</head>
+<body>
+<main>
+<header>
+<h1>Genre predicts popularity. How a song sounds barely does.</h1>
+<p class="lead">I analyzed 89,700 Spotify tracks across 125 genres to see whether audio features like danceability and energy can predict popularity. Genre was the strongest signal, and a simple linear regression cut prediction error by about 30%, beating a Random Forest.</p>
+<div class="btns">
+<a class="btn p" href="https://github.com/dinithi-w025/spotify-popularity-analysis">View code on GitHub</a>
+<a class="btn" href="https://www.kaggle.com/datasets/maharshipandya/-spotify-tracks-dataset">Dataset on Kaggle</a>
+</div>
+</header>
+
+<section>
+<h2>Sound has almost no link to popularity</h2>
+<p class="sub">Correlation of each audio feature with popularity. Every value sits near zero.</p>
+<div class="card" id="corr" role="img" aria-label="Bar chart of correlations between audio features and popularity; the strongest is instrumentalness at -0.13"></div>
+<p style="margin-top:14px">Instrumental tracks tend to be a little less popular. The rest is close to nothing. Features do relate to each other: energy and loudness move together (+0.76), and acoustic songs are calmer (-0.73 with energy).</p>
+</section>
+
+<section>
+<h2>Genre makes the difference</h2>
+<p class="sub">Top 10 genres by average popularity (values read from the chart, rounded).</p>
+<div class="card" id="genre" role="img" aria-label="Bar chart of the top 10 genres by average popularity, led by k-pop and pop-film at about 59"></div>
+<p style="margin-top:14px">Some of this reflects the dataset, not listener taste. 66% of Iranian tracks and 61% of romance tracks have a popularity of 0, so the model uses those genres as a warning sign.</p>
+</section>
+
+<section>
+<h2>Simple beat complex</h2>
+<p class="sub">Three models on the same 80/20 split, plus shuffled 5-fold cross-validation. MAE is the average error in popularity points; guessing the average gives 17.12.</p>
+<div class="card scroll">
+<table>
+<tr><th>Model</th><th>MAE</th><th>RMSE</th><th>R²</th><th>5-fold CV R²</th></tr>
+<tr><td><strong>Linear Regression</strong></td><td>12.02</td><td>16.86</td><td>0.32</td><td>0.328 ± 0.005</td></tr>
+<tr><td>Random Forest</td><td>14.55</td><td>18.40</td><td>0.19</td><td>0.197 ± 0.006</td></tr>
+<tr><td>Decision Tree</td><td>16.01</td><td>19.53</td><td>0.09</td><td>not run</td></tr>
+<tr><td>Baseline (average)</td><td>17.12</td><td>-</td><td>-</td><td>-</td></tr>
+</table>
+</div>
+<p style="margin-top:14px">Linear regression cut error by about 30% versus the baseline. Cross-validation matched the single split, so the result doesn't depend on one lucky 80/20 cut. A more complex model did not help. A likely reason, which I haven't tested, is that most usable signal is a genre-level average that a linear model captures cleanly, while deeper models overfit noisy audio features.</p>
+<p>Excluding zero-popularity tracks raised the Random Forest's R² from 0.19 to 0.31 (MAE 15.24 to 11.79 against its own baseline). Those tracks add noise audio and genre can't explain, and the narrower model answers a different question: how popular a track is, given that it has some listeners. Without the zeros, instrumentalness becomes its most important feature.</p>
+<h2 style="font-size:1.2rem;margin-top:26px">Where the model struggles</h2>
+<p>In the Random Forest's actual-vs-predicted plot, predictions cluster at a few levels (about 10 to 20, about 35, and about 55 to 60), as if the model is mostly guessing a genre-level average. Very popular songs (70+) are under-predicted, and many true zeros are predicted at 10 to 20. Genre gives a rough level; the rest of popularity isn't in this data.</p>
+</section>
+
+<section>
+<h2>Four vibes</h2>
+<p class="sub">K-Means on danceability, energy, valence, and acousticness. Average popularity is almost the same in every group.</p>
+<div class="grid">
+<div class="vibe" style="--c:var(--c0)"><h3>Feel-good party</h3>High danceability, energy, and mood.<small>30,202 songs · popularity 33.1</small></div>
+<div class="vibe" style="--c:var(--c1)"><h3>Mellow acoustic</h3>Medium energy, very acoustic.<small>19,059 songs · popularity 34.1</small></div>
+<div class="vibe" style="--c:var(--c2)"><h3>Sad and quiet</h3>Low energy and mood, highly acoustic.<small>12,753 songs · popularity 30.0</small></div>
+<div class="vibe" style="--c:var(--c3)"><h3>Intense and dark</h3>High energy, low mood, not acoustic.<small>27,726 songs · popularity 34.1</small></div>
+</div>
+</section>
+
+<section>
+<h2>What this analysis can't tell you</h2>
+<ul>
+<li>The data has no artist fame, playlist placement, or release date, which likely drive much of popularity. Even the best model (R² of about 0.33) leaves most of it unexplained.</li>
+<li>Duplicate tracks were removed, so each song keeps one genre label.</li>
+<li>Genre averages can be skewed by small genres and how the data was collected.</li>
+<li>The vibe groups are slices of one continuous cloud, not sharply separated clusters.</li>
+</ul>
+</section>
+
+<footer>
+<p>Built by Dinithi Amaya with Python, pandas, seaborn, and scikit-learn. Data: Spotify Tracks Dataset (Kaggle).</p>
+</footer>
+</main>
+<script>
+function bars(id,rows,max,fmt){
+  var h="";
+  rows.forEach(function(r){
+    var v=r[1],w=Math.abs(v)/max*100;
+    h+='<div class="row"><span>'+r[0]+'</span><div class="track">'+
+      '<div class="bar" style="width:'+w+'%"></div></div><span class="val">'+fmt(v)+'</span></div>';
+  });
+  document.getElementById(id).innerHTML=h;
+}
+/* correlation: centered bars */
+(function(){
+  var rows=[["instrumentalness",-.13],["loudness",.07],["danceability",.06],["speechiness",-.05],["acousticness",-.04],["energy",.01],["tempo",.01],["valence",-.01],["liveness",-.01]];
+  var h="";
+  rows.forEach(function(r){
+    var v=r[1],w=Math.abs(v)/.15*50;
+    var pos=v<0?'right:50%;':'left:50%;';
+    h+='<div class="row"><span>'+r[0]+'</span><div class="track zero"><div class="bar'+(v<0?' neg':'')+'" style="'+pos+'width:'+w+'%;'+(v<0?'left:auto':'right:auto')+'"></div></div><span class="val">'+(v>0?"+":"")+v.toFixed(2)+'</span></div>';
+  });
+  document.getElementById("corr").innerHTML=h;
+})();
+bars("genre",[["k-pop",59.4],["pop-film",59.1],["metal",56.4],["chill",53.7],["latino",51.7],["sad",51.1],["grunge",50.5],["indian",49.7],["anime",48.7],["emo",48.5]],62,function(v){return v.toFixed(1)});
+</script>
+</body>
+</html>
